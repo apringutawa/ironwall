@@ -22,14 +22,31 @@ IronWall is a comprehensive security solution that automates server hardening, m
 
 ### One-Line Installation
 
+Install directly from GitHub:
+
 ```bash
-curl -sSL https://ironwall.sh/install.sh | sudo bash
+curl -sSL https://raw.githubusercontent.com/apringutawa/ironwall/main/scripts/install.sh | sudo bash
 ```
 
-Or:
+Or using wget:
 
 ```bash
-wget -O - https://ironwall.sh/install.sh | sudo bash
+wget -qO- https://raw.githubusercontent.com/apringutawa/ironwall/main/scripts/install.sh | sudo bash
+```
+
+### Manual Installation
+
+```bash
+# Clone repository
+git clone https://github.com/apringutawa/ironwall.git
+cd ironwall
+
+# Build CLI
+go build -o ironwall cmd/ironwall/main.go
+sudo mv ironwall /usr/local/bin/
+
+# Run installer
+sudo ironwall install
 ```
 
 ## Usage
@@ -194,9 +211,9 @@ MIT License - see LICENSE file for details
 
 ## Support
 
-- Documentation: https://ironwall.sh/docs
-- Issues: https://github.com/yourusername/ironwall/issues
-- Discord: https://discord.gg/ironwall
+- Documentation: [GitHub Wiki](https://github.com/apringutawa/ironwall/wiki)
+- Issues: [GitHub Issues](https://github.com/apringutawa/ironwall/issues)
+- Repository: https://github.com/apringutawa/ironwall
 
 ## Roadmap
 
