@@ -1,0 +1,34 @@
+[fail2ban]
+enabled = true
+filter = fail2ban
+action = iptables-all[name=fail2ban]
+logpath = /var/log/auth.log
+maxretry = 3
+bantime = 3600
+findtime = 600
+
+[sshd]
+enabled = true
+port = ssh
+filter = sshd
+logpath = /var/log/auth.log
+maxretry = 3
+bantime = 3600
+findtime = 600
+
+[sshd-ddos]
+enabled = true
+port = ssh
+filter = sshd-ddos
+logpath = /var/log/auth.log
+maxretry = 2
+bantime = 86400
+
+[recidive]
+enabled = true
+filter = recidive
+logpath = /var/log/fail2ban.log
+action = iptables-all[name=recidive]
+bantime = 604800
+findtime = 86400
+maxretry = 5
