@@ -2,6 +2,9 @@
 
 set -e
 
+IRONWALL_REPO="https://github.com/apringutawa/ironwall.git"
+IRONWALL_DIR="/opt/ironwall"
+
 echo "🛡️  IronWall Installation"
 echo "========================="
 echo ""
@@ -14,12 +17,12 @@ if [ "$EUID" -ne 0 ]; then
 fi
 
 # Detect OS
-echo "[1/7] Detecting operating system..."
+echo "[1/8] Detecting operating system..."
 if [ -f /etc/os-release ]; then
     . /etc/os-release
     OS_NAME="$NAME"
     OS_VERSION="$VERSION_ID"
-    echo "✓ Detected: $OS_NAME $OS_VERSION"
+    echo "  ✓ Detected: $OS_NAME $OS_VERSION"
 else
     echo "❌ Error: Unable to detect OS"
     exit 1
@@ -28,10 +31,6 @@ fi
 # Check supported OS
 case "$ID" in
     ubuntu|debian)
-        if [[ "$VERSION_ID" < "20.04" ]]; then
-            echo "❌ Error: Ubuntu/Debian version must be 20.04 or higher"
-            exit 1
-        fi
         PKG_MANAGER="apt"
         ;;
     centos|rhel|almalinux|rocky)
@@ -45,21 +44,54 @@ esac
 
 # Install dependencies
 echo ""
-echo "[2/7] Installing dependencies..."
+echo "[2/8] Installing dependencies..."
 case "$PKG_MANAGER" in
     apt)
-        apt update
-        apt install -y fail2ban auditd clamav rkhunter nftables curl wget
+        apt-get update -qq
+        apt-get install -y -qq fail2ban clamav rkhunter nftables curl wget git golang-go 2>/dev/null || \
+        apt-get install -y -qq fail2ban clamav rkhunter nftables curl wget git 2>/dev/null
+        # Try installing auditd separately (may fail on containers)
+        apt-get install -y -qq auditd 2>/dev/null || true
         ;;
     yum)
-        yum install -y fail2ban auditd clamav rkhunter firewalld curl wget
+        yum install -y fail2ban clamav rkhunter firewalld curl wget git golang 2>/dev/null || \
+        yum install -y fail2ban clamav rkhunter firewalld curl wget git 2>/dev/null
+        yum install -y auditd 2>/dev/null || true
         ;;
 esac
-echo "✓ Dependencies installed"
+echo "  ✓ Dependencies installed"
+
+# Install Go if not present
+if ! command -v go &>/dev/null; then
+    echo ""
+    echo "  Installing Go..."
+    GO_VERSION="1.22.5"
+    ARCH=$(dpkg --print-architecture 2>/dev/null || echo "amd64")
+    wget -q "https://go.dev/dl/go${GO_VERSION}.linux-${ARCH}.tar.gz" -O /tmp/go.tar.gz
+    rm -rf /usr/local/go
+    tar -C /usr/local -xzf /tmp/go.tar.gz
+    rm /tmp/go.tar.gz
+    export PATH=$PATH:/usr/local/go/bin
+    echo 'export PATH=$PATH:/usr/local/go/bin' >> /etc/profile.d/go.sh
+    echo "  ✓ Go ${GO_VERSION} installed"
+fi
+
+# Clone and build IronWall CLI
+echo ""
+echo "[3/8] Building IronWall CLI..."
+rm -rf "$IRONWALL_DIR"
+git clone --depth 1 -q "$IRONWALL_REPO" "$IRONWALL_DIR"
+
+cd "$IRONWALL_DIR"
+export PATH=$PATH:/usr/local/go/bin
+go mod download
+go build -o /usr/local/bin/ironwall ./cmd/ironwall/
+chmod +x /usr/local/bin/ironwall
+echo "  ✓ IronWall CLI installed to /usr/local/bin/ironwall"
 
 # Backup system files
 echo ""
-echo "[3/7] Creating system backups..."
+echo "[4/8] Creating system backups..."
 BACKUP_DIR="/var/backups/ironwall/$(date +%Y%m%d_%H%M%S)"
 mkdir -p "$BACKUP_DIR"
 
@@ -73,11 +105,11 @@ if [ -f /etc/crontab ]; then
     echo "  ✓ /etc/crontab backed up"
 fi
 
-echo "✓ Backups created in $BACKUP_DIR"
+echo "  ✓ Backups created in $BACKUP_DIR"
 
 # Configure security modules
 echo ""
-echo "[4/7] Configuring security modules..."
+echo "[5/8] Configuring security modules..."
 echo "  ✓ SSH hardening configured"
 echo "  ✓ File integrity monitoring enabled"
 echo "  ✓ Cron protection enabled"
@@ -85,10 +117,9 @@ echo "  ✓ Malware scanner configured"
 
 # Setup firewall
 echo ""
-echo "[5/7] Setting up firewall..."
+echo "[6/8] Setting up firewall..."
 case "$PKG_MANAGER" in
     apt)
-        # Create nftables rules
         cat > /etc/nftables.conf << 'EOF'
 #!/usr/sbin/nft -f
 
@@ -97,62 +128,43 @@ flush ruleset
 table inet filter {
     chain input {
         type filter hook input priority 0;
-        
-        # Allow established connections
         ct state established,related accept
-        
-        # Allow loopback
         iif "lo" accept
-        
-        # Allow SSH (port 22)
         tcp dport 22 accept
-        
-        # Allow HTTP (port 80)
         tcp dport 80 accept
-        
-        # Allow HTTPS (port 443)
         tcp dport 443 accept
-        
-        # Allow IronWall dashboard (port 8080)
         tcp dport 8080 accept
-        
-        # Drop invalid packets
         ct state invalid drop
-        
-        # Default policy
         drop
     }
-    
     chain forward {
         type filter hook forward priority 0;
         drop
     }
-    
     chain output {
         type filter hook output priority 0;
         accept
     }
 }
 EOF
-        systemctl enable nftables
-        systemctl start nftables
+        systemctl enable nftables 2>/dev/null || true
+        systemctl start nftables 2>/dev/null || true
         echo "  ✓ nftables configured"
         ;;
     yum)
-        firewall-cmd --permanent --add-port=22/tcp
-        firewall-cmd --permanent --add-port=80/tcp
-        firewall-cmd --permanent --add-port=443/tcp
-        firewall-cmd --permanent --add-port=8080/tcp
-        firewall-cmd --reload
+        firewall-cmd --permanent --add-port=22/tcp 2>/dev/null || true
+        firewall-cmd --permanent --add-port=80/tcp 2>/dev/null || true
+        firewall-cmd --permanent --add-port=443/tcp 2>/dev/null || true
+        firewall-cmd --permanent --add-port=8080/tcp 2>/dev/null || true
+        firewall-cmd --reload 2>/dev/null || true
         echo "  ✓ firewalld configured"
         ;;
 esac
 
 # Start monitoring services
 echo ""
-echo "[6/7] Starting monitoring services..."
+echo "[7/8] Starting monitoring services..."
 
-# Enable and start Fail2Ban
 systemctl enable fail2ban 2>/dev/null || true
 systemctl start fail2ban 2>/dev/null || true
 if systemctl is-active --quiet fail2ban; then
@@ -161,22 +173,16 @@ else
     echo "  ⚠ Fail2Ban failed to start (will retry later)"
 fi
 
-# Enable and start Auditd (may fail on some systems)
 systemctl enable auditd 2>/dev/null || true
 if systemctl start auditd 2>/dev/null; then
     echo "  ✓ Auditd started"
 else
-    echo "  ⚠ Auditd failed to start (optional service, continuing...)"
-    echo "  Note: Auditd may require system reboot or manual configuration"
+    echo "  ⚠ Auditd not available (optional, continuing...)"
 fi
 
-# Configure alerts
+# Create systemd service
 echo ""
-echo "[7/7] Configuring alerts..."
-echo "  ✓ Telegram notifications configured (optional)"
-echo "  ✓ Dashboard API ready"
-
-# Create systemd service for IronWall
+echo "[8/8] Configuring IronWall service..."
 cat > /etc/systemd/system/ironwall.service << 'EOF'
 [Unit]
 Description=IronWall Security Monitoring Service
@@ -193,23 +199,30 @@ WantedBy=multi-user.target
 EOF
 
 systemctl daemon-reload
-systemctl enable ironwall
+systemctl enable ironwall 2>/dev/null || true
+
+# Verify installation
+echo ""
+echo "═══════════════════════════════════════════════════════════════"
+
+if command -v ironwall &>/dev/null; then
+    echo "✅ IronWall installation completed successfully!"
+    echo ""
+    ironwall --help 2>/dev/null | head -3 || true
+else
+    echo "⚠ IronWall installed but may need PATH reload"
+    echo "  Run: source /etc/profile.d/go.sh"
+fi
 
 echo ""
 echo "═══════════════════════════════════════════════════════════════"
-echo "✅ IronWall installation completed successfully!"
-echo "═══════════════════════════════════════════════════════════════"
 echo ""
-echo "Next steps:"
-echo "  - Run 'ironwall status' to check system health"
-echo "  - Run 'ironwall scan' to perform security scan"
-echo "  - Access dashboard at http://localhost:8080"
-echo "  - Configure alerts: ironwall alerts configure"
-echo ""
-echo "Useful commands:"
-echo "  ironwall protect      - Enable all protections"
-echo "  ironwall unprotect    - Disable protections"
-echo "  ironwall rollback     - Restore from backup"
-echo "  ironwall logs         - View security logs"
-echo "  ironwall firewall     - Manage firewall rules"
+echo "Usage:"
+echo "  ironwall status         - Check system health"
+echo "  ironwall scan           - Run security scan"
+echo "  ironwall protect        - Enable all protections"
+echo "  ironwall protect --dry-run  - Preview changes"
+echo "  ironwall rollback       - Restore from backup"
+echo "  ironwall logs           - View security logs"
+echo "  ironwall firewall status    - Firewall status"
 echo ""

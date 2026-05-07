@@ -1,5 +1,5 @@
-# Go
-ironwall
+# Go binary output
+/ironwall
 *.exe
 *.dll
 *.so
