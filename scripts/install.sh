@@ -151,12 +151,24 @@ esac
 # Start monitoring services
 echo ""
 echo "[6/7] Starting monitoring services..."
-systemctl enable fail2ban
-systemctl enable auditd
-systemctl start fail2ban
-systemctl start auditd
-echo "  ✓ Fail2Ban started"
-echo "  ✓ Auditd started"
+
+# Enable and start Fail2Ban
+systemctl enable fail2ban 2>/dev/null || true
+systemctl start fail2ban 2>/dev/null || true
+if systemctl is-active --quiet fail2ban; then
+    echo "  ✓ Fail2Ban started"
+else
+    echo "  ⚠ Fail2Ban failed to start (will retry later)"
+fi
+
+# Enable and start Auditd (may fail on some systems)
+systemctl enable auditd 2>/dev/null || true
+if systemctl start auditd 2>/dev/null; then
+    echo "  ✓ Auditd started"
+else
+    echo "  ⚠ Auditd failed to start (optional service, continuing...)"
+    echo "  Note: Auditd may require system reboot or manual configuration"
+fi
 
 # Configure alerts
 echo ""
