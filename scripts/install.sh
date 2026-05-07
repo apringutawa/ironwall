@@ -84,7 +84,8 @@ git clone --depth 1 -q "$IRONWALL_REPO" "$IRONWALL_DIR"
 
 cd "$IRONWALL_DIR"
 export PATH=$PATH:/usr/local/go/bin
-go mod download
+export GOPATH=/root/go
+go mod tidy
 go build -o /usr/local/bin/ironwall ./cmd/ironwall/
 chmod +x /usr/local/bin/ironwall
 echo "  ✓ IronWall CLI installed to /usr/local/bin/ironwall"
