@@ -1,5 +1,4 @@
 # Go
-go.sum
 ironwall
 *.exe
 *.dll
@@ -14,10 +13,6 @@ ironwall
 
 # Dependency directories
 go/pkg/mod/
-
-# Go workspace
-*.mod
-*.sum
 
 # Python
 __pycache__/
