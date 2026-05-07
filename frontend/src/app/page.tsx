@@ -136,8 +136,8 @@ export default function DashboardPage() {
   )
 }
 
-function StatCard({ icon, title, value, color }: any) {
-  const colorClasses = {
+function StatCard({ icon, title, value, color }: { icon: React.ReactNode; title: string; value: string | number; color: 'primary' | 'warning' | 'danger' }) {
+  const colorClasses: Record<'primary' | 'warning' | 'danger', string> = {
     primary: 'text-[var(--primary)]',
     warning: 'text-[var(--warning)]',
     danger: 'text-[var(--danger)]'
