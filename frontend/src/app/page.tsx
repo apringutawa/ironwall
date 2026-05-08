@@ -60,6 +60,7 @@ export default function DashboardPage() {
           <Link href="/events" className="text-gray-400 hover:text-white">Events</Link>
           <Link href="/modules" className="text-gray-400 hover:text-white">Modules</Link>
           <Link href="/firewall" className="text-gray-400 hover:text-white">Firewall</Link>
+          <Link href="/hardening" className="text-gray-400 hover:text-white">Hardening</Link>
           <Link href="/settings" className="text-gray-400 hover:text-white">Settings</Link>
         </div>
       </nav>

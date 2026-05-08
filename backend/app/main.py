@@ -2,7 +2,7 @@ from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.core.database import engine, Base
-from app.api import status, events, scan, firewall, alerts
+from app.api import status, events, scan, firewall, alerts, hardening
 
 Base.metadata.create_all(bind=engine)
 
@@ -26,6 +26,7 @@ app.include_router(events.router)
 app.include_router(scan.router)
 app.include_router(firewall.router)
 app.include_router(alerts.router)
+app.include_router(hardening.router)
 
 @app.get("/")
 async def root():

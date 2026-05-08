@@ -93,3 +93,30 @@ class ScanResult(BaseModel):
     webshells_found: int
     suspicious_processes: int
     timestamp: datetime
+
+class HardeningStatus(BaseModel):
+    kernel_hardening: dict
+    account_hardening: dict
+    file_integrity: dict
+    service_minimization: dict
+    security_audit: dict
+
+class AuditResult(BaseModel):
+    hardening_score: float
+    warnings: int
+    suggestions: int
+    tests_performed: int
+    status: str
+    last_run: Optional[datetime] = None
+
+class ServiceInfo(BaseModel):
+    name: str
+    status: str
+    classification: str
+
+class KernelParam(BaseModel):
+    key: str
+    value: str
+    current: Optional[str] = None
+    description: str
+    applied: bool

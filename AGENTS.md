@@ -18,7 +18,7 @@ IronWall is an automated Linux system hardening and threat prevention toolkit. I
 - **CLI**: Go 1.21+ with Cobra
 - **Backend**: FastAPI + SQLAlchemy + SQLite
 - **Frontend**: Next.js 15 + React 19 + TypeScript + Tailwind CSS 4
-- **Security Tools**: ClamAV, Fail2Ban, nftables/iptables, auditd
+- **Security Tools**: ClamAV, Fail2Ban, nftables/iptables, auditd, Lynis, AIDE
 
 ## Project Structure
 
@@ -28,7 +28,8 @@ ironwall/
 │   ├── main.go
 │   └── cmd/               # Cobra commands
 ├── internal/              # Go internal packages
-│   ├── hardening/         # SSH hardening module
+│   ├── audit/             # Lynis security audit
+│   ├── hardening/         # SSH, sysctl, accounts, AIDE, services
 │   ├── firewall/          # Firewall management
 │   ├── scanner/           # Malware scanner
 │   ├── monitor/           # Cron monitoring
@@ -119,6 +120,37 @@ go build -o ironwall cmd/ironwall/main.go
 - Restores from backup
 - File locking/unlocking (chattr)
 
+### 6. Lynis Audit (`internal/audit/lynis.go`)
+- Runs comprehensive security audit
+- Parses hardening score and recommendations
+- Auto-installs Lynis if missing
+- Tests performed tracking
+
+### 7. Kernel Sysctl Hardening (`internal/hardening/sysctl.go`)
+- 27 kernel parameters for network hardening
+- ASLR, anti-spoofing, SYN flood protection
+- ICMP redirect/ignore configuration
+- TCP stack hardening
+
+### 8. User Account Hardening (`internal/hardening/accounts.go`)
+- PAM password policy (min length 12, complexity)
+- Faillock lockout (5 attempts, 15min)
+- Sudo I/O audit logging
+- Password aging (90 days max)
+- UID 0 check, empty password check
+
+### 9. AIDE Integrity (`internal/hardening/aide.go`)
+- File integrity database initialization
+- Daily automated integrity checks
+- Fallback when auditd unavailable
+- Systemd timer integration
+
+### 10. Service Minimization (`internal/hardening/services.go`)
+- Detects dangerous services (telnet, ftp, nfs, etc.)
+- Systemd/SysVinit auto-detection
+- Disable + mask dangerous services
+- Dry-run support
+
 ## API Endpoints
 
 ### Status & Modules
@@ -143,19 +175,48 @@ go build -o ironwall cmd/ironwall/main.go
 - `GET /api/v1/alerts/configure` - Get alert config
 - `POST /api/v1/alerts/test` - Test alert
 
+### Hardening
+- `GET /api/v1/hardening/status` - Hardening module status
+- `POST /api/v1/hardening/kernel/apply` - Apply kernel sysctl params
+- `POST /api/v1/hardening/accounts/apply` - Apply account hardening
+- `POST /api/v1/hardening/aide/init` - Init AIDE database
+- `POST /api/v1/hardening/aide/check` - Run AIDE check
+- `POST /api/v1/hardening/services/minimize` - Disable dangerous services
+- `GET /api/v1/hardening/services/list` - List services by class
+- `GET /api/v1/hardening/audit/status` - Lynis audit status
+- `POST /api/v1/hardening/audit/run` - Run Lynis audit
+- `POST /api/v1/hardening/audit/install` - Install Lynis
+
 ## CLI Commands
 
 ```bash
-ironwall install          # Install and configure IronWall
-ironwall status           # Show system status
-ironwall scan             # Run security scan
-ironwall protect          # Enable all protections
-ironwall unprotect        # Disable protections
-ironwall rollback         # Restore from backup
-ironwall logs             # View logs
-ironwall firewall status  # Firewall status
-ironwall firewall block   # Block IP
-ironwall firewall unblock # Unblock IP
+ironwall install              # Install and configure IronWall
+ironwall status               # Show system status
+ironwall scan                 # Run security scan
+ironwall protect              # Enable all protections
+ironwall unprotect            # Disable protections
+ironwall rollback             # Restore from backup
+ironwall logs                 # View logs
+ironwall firewall status      # Firewall status
+ironwall firewall block       # Block IP
+ironwall firewall unblock     # Unblock IP
+ironwall audit                # Run security audit (Lynis)
+ironwall audit install        # Install Lynis
+ironwall audit score          # Show hardening score
+ironwall sysctl apply         # Apply kernel hardening
+ironwall sysctl verify        # Verify kernel params
+ironwall sysctl restore       # Restore sysctl backup
+ironwall accounts harden      # Apply account hardening
+ironwall accounts list        # List system users
+ironwall accounts check       # Check account security
+ironwall accounts restore     # Restore account config
+ironwall aide init            # Init AIDE database
+ironwall aide check           # Run integrity check
+ironwall aide update          # Update AIDE database
+ironwall aide enable          # Enable daily monitoring
+ironwall services list        # List services by class
+ironwall services minimize    # Disable dangerous services
+ironwall services scan        # Scan insecure services
 ```
 
 ## Configuration
@@ -287,6 +348,11 @@ When adding new features:
 - File integrity
 - Web dashboard
 - Alert system
+- Lynis security audit ✅
+- Kernel sysctl hardening ✅
+- User account hardening ✅
+- AIDE file integrity ✅
+- Service minimization ✅
 
 ### Phase 2 (Planned)
 - WAF integration (ModSecurity)

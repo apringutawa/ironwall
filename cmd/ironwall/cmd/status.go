@@ -5,6 +5,7 @@ import (
 	"os"
 	"text/tabwriter"
 
+	"github.com/apringutawa/ironwall/internal/hardening"
 	"github.com/spf13/cobra"
 )
 
@@ -14,21 +15,20 @@ var statusCmd = &cobra.Command{
 	Long:  `Display current status of all security modules, system health, and recent security events.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
-		
+
 		fmt.Println("╔════════════════════════════════════════════════════════════╗")
 		fmt.Println("║              IronWall Security Status                      ║")
 		fmt.Println("╚════════════════════════════════════════════════════════════╝")
 		fmt.Println()
-		
+
 		fmt.Println("📊 System Health")
 		fmt.Println("────────────────")
-		fmt.Fprintf(w, "  Status:\t%s\n", "🟢 Protected")
-		fmt.Fprintf(w, "  Uptime:\t%s\n", "5 days, 12 hours")
-		fmt.Fprintf(w, "  CPU Usage:\t%.1f%%\n", 2.3)
-		fmt.Fprintf(w, "  Memory Usage:\t%.1f%%\n", 15.2)
+		fmt.Fprintf(w, "  Status:\t%s\n", "Protected")
+		fmt.Fprintf(w, "  CPU:\t%.1f%%\n", 2.3)
+		fmt.Fprintf(w, "  Memory:\t%.1f%%\n", 15.2)
 		w.Flush()
 		fmt.Println()
-		
+
 		fmt.Println("🔒 Security Modules")
 		fmt.Println("───────────────────")
 		fmt.Fprintf(w, "  SSH Hardening:\t%s\n", "✓ Active")
@@ -36,10 +36,13 @@ var statusCmd = &cobra.Command{
 		fmt.Fprintf(w, "  Fail2Ban:\t%s\n", "✓ Active")
 		fmt.Fprintf(w, "  Malware Scanner:\t%s\n", "✓ Active")
 		fmt.Fprintf(w, "  Cron Protection:\t%s\n", "✓ Active")
-		fmt.Fprintf(w, "  File Integrity:\t%s\n", "✓ Active")
+		fmt.Fprintf(w, "  Kernel Hardening:\t%s\n", "✓ Active")
+		fmt.Fprintf(w, "  Account Hardening:\t%s\n", "✓ Active")
+		fmt.Fprintf(w, "  AIDE:\t%s\n", "✓ Active")
+		fmt.Fprintf(w, "  Service Minimization:\t%s\n", "✓ Active")
 		w.Flush()
 		fmt.Println()
-		
+
 		fmt.Println("📈 Security Statistics (24h)")
 		fmt.Println("─────────────────────────────")
 		fmt.Fprintf(w, "  Blocked IPs:\t%d\n", 147)
@@ -48,7 +51,7 @@ var statusCmd = &cobra.Command{
 		fmt.Fprintf(w, "  Intrusion Attempts:\t%d\n", 3)
 		w.Flush()
 		fmt.Println()
-		
+
 		fmt.Println("🛡️  Firewall Rules")
 		fmt.Println("──────────────────")
 		fmt.Fprintf(w, "  SSH (22):\t%s\n", "Open")
@@ -58,8 +61,15 @@ var statusCmd = &cobra.Command{
 		fmt.Fprintf(w, "  Other Ports:\t%s\n", "Blocked")
 		w.Flush()
 		fmt.Println()
-		
-		fmt.Println("Run 'ironwall scan' to perform a security scan.")
+
+		fmt.Println("Available commands:")
+		fmt.Println("  ironwall audit       - Run security audit (Lynis)")
+		fmt.Println("  ironwall sysctl      - Kernel hardening parameters")
+		fmt.Println("  ironwall accounts    - User account hardening")
+		fmt.Println("  ironwall aide        - File integrity monitoring")
+		fmt.Println("  ironwall services    - Service minimization")
+		fmt.Println("  ironwall protect     - Enable all protections")
+		fmt.Println("  ironwall scan        - Perform security scan")
 	},
 }
 
