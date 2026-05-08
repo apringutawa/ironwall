@@ -5,8 +5,11 @@ set -e
 IRONWALL_REPO="https://github.com/apringutawa/ironwall.git"
 IRONWALL_DIR="/opt/ironwall"
 
-echo "🛡️  IronWall Installation"
-echo "========================="
+echo ""
+echo "╔═══════════════════════════════════════════════════════════════╗"
+echo "║                    IRONWALL Hardening System                  ║"
+echo "║                 by Kubu Raya CSIRT - 2026                     ║"
+echo "╚═══════════════════════════════════════════════════════════════╝"
 echo ""
 
 # Check if running as root
