@@ -5,7 +5,6 @@ import (
 	"os"
 	"text/tabwriter"
 
-	"github.com/apringutawa/ironwall/internal/hardening"
 	"github.com/spf13/cobra"
 )
 
